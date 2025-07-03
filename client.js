@@ -1,4 +1,3 @@
-
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
@@ -18,46 +17,34 @@ for (let mod in mods) {
 document.addEventListener("keydown", e => {
   if (e.code === "KeyR") {
     socket.send(new Uint8Array([0x00]));
-    console.log("Sent respawn");
   }
   if (e.code === "KeyF") mods.freecam = !mods.freecam;
   if (e.code === "KeyX") mods.hatSwitch = !mods.hatSwitch;
 });
 
-let players = [];
-let myId = null;
-
+let players = [{ x: 300, y: 300 }];
 const socket = new WebSocket("wss://game.glar.io");
 socket.binaryType = "arraybuffer";
 
 socket.onopen = () => {
-  console.log("[WS] Connected");
-
   const nickname = "ModUser";
   const nameBytes = new TextEncoder().encode(nickname);
   const buffer = new Uint8Array(1 + nameBytes.length);
   buffer[0] = 0x03;
   buffer.set(nameBytes, 1);
   socket.send(buffer);
-  console.log("[WS] Sent join");
 };
 
 socket.onmessage = (event) => {
-  try {
-    const view = new DataView(event.data);
-    console.log("[WS] Received data len:", view.byteLength);
-    // Простейшая заглушка игрока, пока не распарсен протокол
-    players = [{ x: 300, y: 300 }];
-  } catch (e) {
-    console.error("WS parse error:", e);
-  }
+  const view = new DataView(event.data);
+  players = [{ x: 300, y: 300 }]; // временно статичный игрок
 };
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   players.forEach(p => {
     ctx.beginPath();
-    ctx.arc(p.x ?? 300, p.y ?? 300, 10, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
     ctx.fillStyle = "#0f0";
     ctx.fill();
   });
