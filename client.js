@@ -21,7 +21,9 @@ document.addEventListener("keydown", e => {
   if (e.code === "KeyX") mods.hatSwitch = !mods.hatSwitch;
 });
 
-let players = [{ x: 300, y: 300 }]; // статично — чтобы было видно
+let players = [];
+let myId = null;
+
 const socket = new WebSocket("wss://game.glar.io");
 socket.binaryType = "arraybuffer";
 
@@ -37,29 +39,38 @@ socket.onopen = () => {
 };
 
 socket.onmessage = (event) => {
-  console.log("[WS] Received data len:", event.data.byteLength);
-  // Статичная точка для теста
-  players = [{ x: 300, y: 300 }];
+  const view = new DataView(event.data);
+  const opcode = view.getUint8(0);
+
+  // Тестовая декодировка игроков (примерный формат, зависит от серверного протокола)
+  if (opcode === 0x10 || view.byteLength >= 17) {
+    players = [];
+    for (let i = 1; i < view.byteLength; i += 17) {
+      const id = view.getUint32(i, true);
+      const x = view.getFloat32(i + 4, true);
+      const y = view.getFloat32(i + 8, true);
+      const me = view.getUint8(i + 16) === 1;
+      if (me && !myId) myId = id;
+      players.push({ id, x, y, me });
+    }
+  }
 };
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   players.forEach(p => {
-    if (p?.x && p?.y) {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
+    ctx.fillStyle = p.id === myId ? "lime" : "blue";
+    ctx.fill();
+    if (mods.weaponRadius && p.id === myId) {
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 15, 0, Math.PI * 2);
-      ctx.fillStyle = "lime";
-      ctx.fill();
-      if (mods.weaponRadius) {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 80, 0, Math.PI * 2);
-        ctx.strokeStyle = "red";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
+      ctx.arc(p.x, p.y, 80, 0, Math.PI * 2);
+      ctx.strokeStyle = "red";
+      ctx.lineWidth = 2;
+      ctx.stroke();
     }
   });
   requestAnimationFrame(draw);
 }
 draw();
-
