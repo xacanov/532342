@@ -1,4 +1,3 @@
-
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
@@ -12,24 +11,23 @@ const mods = {
 };
 
 for (let mod in mods) {
-  document.getElementById(mod).onchange = e => mods[mod] = e.target.checked;
+  const box = document.getElementById(mod);
+  if (box) box.onchange = e => mods[mod] = e.target.checked;
 }
 
 document.addEventListener("keydown", e => {
-  if (e.code === "KeyR") {
-    socket.send(new Uint8Array([0x00]));
-  }
+  if (e.code === "KeyR") socket.send(new Uint8Array([0x00]));
   if (e.code === "KeyF") mods.freecam = !mods.freecam;
   if (e.code === "KeyX") mods.hatSwitch = !mods.hatSwitch;
 });
 
-let players = [{ x: 400, y: 300 }];
-
+let players = [{ x: 300, y: 300 }]; // статично — чтобы было видно
 const socket = new WebSocket("wss://game.glar.io");
 socket.binaryType = "arraybuffer";
 
 socket.onopen = () => {
-  const nickname = "ModUser";
+  console.log("[WS] Connected");
+  const nickname = "MODUSER";
   const nameBytes = new TextEncoder().encode(nickname);
   const buffer = new Uint8Array(1 + nameBytes.length);
   buffer[0] = 0x03;
@@ -38,25 +36,30 @@ socket.onopen = () => {
   console.log("[WS] Sent join");
 };
 
-socket.onmessage = () => {
-  // Временно заглушка
-  players = [{ x: 400, y: 300 }];
+socket.onmessage = (event) => {
+  console.log("[WS] Received data len:", event.data.byteLength);
+  // Статичная точка для теста
+  players = [{ x: 300, y: 300 }];
 };
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   players.forEach(p => {
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
-    ctx.fillStyle = "lime";
-    ctx.fill();
-    if (mods.weaponRadius) {
+    if (p?.x && p?.y) {
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 80, 0, Math.PI * 2);
-      ctx.strokeStyle = "red";
-      ctx.stroke();
+      ctx.arc(p.x, p.y, 15, 0, Math.PI * 2);
+      ctx.fillStyle = "lime";
+      ctx.fill();
+      if (mods.weaponRadius) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 80, 0, Math.PI * 2);
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
     }
   });
   requestAnimationFrame(draw);
 }
 draw();
+
